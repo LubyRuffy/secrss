@@ -1,6 +1,7 @@
 #/usr/bin/env ruby
 # encoding: utf-8
 require 'nokogiri'
+require 'domainatrix'
 
 class XuanwuRss
   def initialize
@@ -90,11 +91,38 @@ class XuanwuRss
 
     [tag, link, m[:description]]
   end
+
+  def self.host_of_url(url)
+    begin
+      url = 'http://'+url+'/' if !url.include?('http://') and !url.include?('https://')
+      url = URI.encode(url) unless url.include? '%' #如果包含百分号%，说明已经编码过了
+      uri = URI(url)
+      uri.host
+    rescue => e
+      nil
+    end
+  end
 end
 
 
 objs = XuanwuRss.new.run{|obj|
   print '.'
 }
+cnt_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[h1[:atname]]+=1}.sort_by{|k,v| v}.reverse
+puts ""
+puts "distinct count: #{cnt_hash.size}"
+all_cnt = 0
+cnt_hash.each{|k,v|all_cnt+=v}
+puts "articles count: #{all_cnt}"
 puts "sort by source: "
-puts objs.each_with_object(Hash.new(0)){|h1, h2| h2[h1[:atname]]+=1}.sort_by{|k,v| v}.reverse.map{|k,v| "#{k}:\t#{v}"}
+puts cnt_hash.map{|k,v| "#{k}:\t#{v}"}
+
+tag_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[h1[:tag]]+=1}.sort_by{|k,v| v}.reverse
+puts "distinct tag count: #{tag_hash.size}"
+puts "sort by tag: "
+puts tag_hash.map{|k,v| "#{k}:\t#{v}"}
+
+host_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[XuanwuRss.host_of_url(h1[:link])]+=1}.sort_by{|k,v| v}.reverse
+puts "distinct host count: #{host_hash.size}"
+puts "sort by host: "
+puts host_hash.map{|k,v| "#{k}:\t#{v}"}

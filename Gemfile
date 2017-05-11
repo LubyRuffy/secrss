@@ -1,1 +1,2 @@
 gem 'nokogiri'
+gem 'domainatrix'
