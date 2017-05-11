@@ -94,7 +94,10 @@ securelist.com:	54
 mp.weixin.qq.com:	54
 bobao.360.cn:	51
 ```
-看到没有，github才是学习安全的top1来源，paper.seebug.org排名比较高，说明大家对heige的工作还是比较认可滴，甚至超过了www.exploit-db.com和安全客播报。里面有一些软连接没有跟进展开，空了再说。
+看到没有，github才是学习安全的top1来源；github才是学习安全的top1来源；github才是学习安全的top1来源。重要的事情说三遍。
+
+paper.seebug.org排名比较高，说明大家对heige的工作还是比较认可滴，甚至超过了www.exploit-db.com和安全客播报。里面有一些软连接没有跟进展开，空了再说。
+
 
 ### 标签
 共发现59个标签，排序结果如下：
