@@ -103,10 +103,10 @@ class XuanwuRss
 
         tag, link, description = parse_body(body)
         atname ||= ""
+        host = ""
         begin
           host = URI.parse(link.strip).host
         rescue => e
-          host = ""
           puts "[WARNING] #{e} of link: #{link}"
         end
 
@@ -135,10 +135,10 @@ class XuanwuRss
         atname ||= ""
 
         fullname = fullname.delete_prefix('Xuanwu Spider via ') if fullname.include?('Xuanwu Spider via ')
+        host = ""
         begin
           host = URI.parse(link.strip).host
         rescue => e
-          host = ""
           puts "[WARNING] #{e} of link: #{link}"
         end
 
