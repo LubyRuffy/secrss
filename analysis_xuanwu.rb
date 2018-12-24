@@ -2,6 +2,8 @@
 # encoding: utf-8
 require 'nokogiri'
 require 'domainatrix'
+require 'uri'
+
 
 USE_SQLITE3=true
 if USE_SQLITE3
@@ -16,6 +18,7 @@ if USE_SQLITE3
     atname varchar(256),
     source varchar(256),
     link varchar(256),
+    host varchar(256),
     tag varchar(256),
     file varchar(256),
     description text,
@@ -27,7 +30,7 @@ if USE_SQLITE3
   SQL
 
   def insert_article(obj)
-    $db.execute "insert into articles (author, atname, description, tag, link, source, file, year, month, day) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", obj[:fullname], obj[:atname], obj[:description], obj[:tag], obj[:link], obj[:source], obj[:file], obj[:year], obj[:month], obj[:day]
+    $db.execute "insert into articles (author, atname, description, tag, link, source, file, year, month, day, host) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", obj[:fullname], obj[:atname], obj[:description], obj[:tag], obj[:link], obj[:source], obj[:file], obj[:year], obj[:month], obj[:day], obj[:host]
   end
 end
 
@@ -100,12 +103,19 @@ class XuanwuRss
 
         tag, link, description = parse_body(body)
         atname ||= ""
+        begin
+          host = URI.parse(link.strip).host
+        rescue => e
+          host = ""
+          puts "[WARNING] #{e} of link: #{link}"
+        end
 
         obj = {source:'twitter',
                fullname:fullname.strip,
                atname: atname.strip,
                tag: tag.strip,
                link: link.strip,
+               host: host.strip,
                description: description.strip}
         objs << obj
         yield(obj) if block_given?
@@ -125,8 +135,19 @@ class XuanwuRss
         atname ||= ""
 
         fullname = fullname.delete_prefix('Xuanwu Spider via ') if fullname.include?('Xuanwu Spider via ')
+        begin
+          host = URI.parse(link.strip).host
+        rescue => e
+          host = ""
+          puts "[WARNING] #{e} of link: #{link}"
+        end
 
-        obj = {source:fullname.strip, atname: atname.strip, tag: tag.strip, link: link.strip, description: description.strip}
+        obj = {source:fullname.strip,
+               atname: atname.strip,
+               tag: tag.strip,
+               link: link.strip,
+               host: host.strip,
+               description: description.strip}
         objs << obj
         yield(obj) if block_given?
       }
