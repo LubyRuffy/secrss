@@ -169,3 +169,9 @@ paper.seebug.org排名比较高，说明大家对heige的工作还是比较认�
 bundle install
 ruby analysis_xuanwu.rb
 ```
+
+## 查询
+### 查询参考网站排序
+```sql
+select host,count(*) cnt from articles group by host order by cnt desc
+```

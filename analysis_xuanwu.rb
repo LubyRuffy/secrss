@@ -87,6 +87,10 @@ class XuanwuRss
     objs
   end
 
+  def extract_links(html)
+    m = html.match(/((http[s]?|ftp):\/)?\/?([^:\/\s]+)((\/\w+)*\/)([\w\-\.]+[^#?\s]+)(.*)?(#[\w\-]+)?/umi)
+  end
+
   def parse_content(ul)
     objs = []
     if ul['class'] == 'weibolist'
@@ -107,7 +111,7 @@ class XuanwuRss
         begin
           host = URI.parse(link.strip).host
         rescue => e
-          puts "[WARNING] #{e} of link: #{link}"
+          puts "\n[WARNING] #{e} of link: #{link}"
         end
 
         obj = {source:'twitter',
@@ -115,7 +119,7 @@ class XuanwuRss
                atname: atname.strip,
                tag: tag.strip,
                link: link.strip,
-               host: host.strip,
+               host: host,
                description: description.strip}
         objs << obj
         yield(obj) if block_given?
@@ -134,19 +138,25 @@ class XuanwuRss
         tag, link, description = parse_body(body)
         atname ||= ""
 
+        unless link && link.size>8
+          link = extract_links(description) || ""
+        end
+
         fullname = fullname.delete_prefix('Xuanwu Spider via ') if fullname.include?('Xuanwu Spider via ')
         host = ""
         begin
           host = URI.parse(link.strip).host
         rescue => e
-          puts "[WARNING] #{e} of link: #{link}"
+          puts "\n[WARNING] #{e} of link: #{link}"
         end
+
+
 
         obj = {source:fullname.strip,
                atname: atname.strip,
                tag: tag.strip,
                link: link.strip,
-               host: host.strip,
+               host: host,
                description: description.strip}
         objs << obj
         yield(obj) if block_given?
@@ -160,14 +170,14 @@ class XuanwuRss
   def parse_body(body)
     tag = ''
     link = ''
-    m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*?)\<a href="(?<link>.*?)"/um)
+    m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*?)\<a href="(?<link>[^"]*)"/umi)
 
     unless m
-      m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*)(?<link>http[s]?:\/\/.*?)/um)
+      m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*)(?<link>http[s]?:\/\/.*)/umi)
     end
 
     unless m
-      m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*)/um)
+      m = body.match(/[\[]?(?<tag>.*?)\](?<description>.*)/umi)
     end
 
     if m
