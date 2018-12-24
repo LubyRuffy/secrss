@@ -3,6 +3,34 @@
 require 'nokogiri'
 require 'domainatrix'
 
+USE_SQLITE3=true
+if USE_SQLITE3
+  require "sqlite3"
+  $db = SQLite3::Database.new "xuanwu.sqlite3"
+
+  # Create a table
+  $db.execute <<-SQL
+  create table if not exists articles  (
+    title varchar(256),
+    author varchar(256),
+    atname varchar(256),
+    source varchar(256),
+    link varchar(256),
+    tag varchar(256),
+    file varchar(256),
+    description text,
+    created_at timestamp,
+    year int,
+    month int,
+    day int
+  ) ;
+  SQL
+
+  def insert_article(obj)
+    $db.execute "insert into articles (author, atname, description, tag, link, source, file, year, month, day) values ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", obj[:fullname], obj[:atname], obj[:description], obj[:tag], obj[:link], obj[:source], obj[:file], obj[:year], obj[:month], obj[:day]
+  end
+end
+
 class XuanwuRss
   def initialize
     @dir = File.join(File.dirname(__FILE__), 'XuanwuLab.github.io')
@@ -40,10 +68,16 @@ class XuanwuRss
   end
 
   def analysis_file(file)
+    prefix = File.absolute_path(File.dirname(__FILE__))
+    filename = File.absolute_path(file).delete_prefix(prefix).delete_suffix('index.html')
+    path = filename.split(/[\\\/]/)[4..6]
+
     objs = []
     doc = Nokogiri.parse(File.read(file).force_encoding('utf-8'))
     doc.xpath('//*[@id="weibowrapper"]/ul').each{|ul|
       objs += parse_content(ul) {|obj|
+        obj[:file] = path.join('/')
+        obj[:year],obj[:month],obj[:day] = path
         yield(obj) if block_given?
       }
     }
@@ -89,6 +123,8 @@ class XuanwuRss
         body = content.at_xpath('*[@class="singlefeedbody"]/*[@class="singlefeedtext"]/p').inner_html
         tag, link, description = parse_body(body)
         atname ||= ""
+
+        fullname = fullname.delete_prefix('Xuanwu Spider via ') if fullname.include?('Xuanwu Spider via ')
 
         obj = {source:fullname.strip, atname: atname.strip, tag: tag.strip, link: link.strip, description: description.strip}
         objs << obj
@@ -140,10 +176,12 @@ puts ARGV
 if ARGV.size==1 then
   objs = XuanwuRss.new.test(ARGV[0]) {|obj|
     print '.'
+    insert_article(obj)
   }
 else 
   objs = XuanwuRss.new.run{|obj|
     print '.'
+    insert_article(obj)
   }
 end
 
