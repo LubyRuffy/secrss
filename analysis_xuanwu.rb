@@ -13,12 +13,23 @@ class XuanwuRss
     git_update
     files = File.join(@dir, "cn", "secnews", "**", "*.html")
     Dir.glob(files){|file|
+      # puts file
       objs += analysis_file(file) {|obj|
         yield(obj) if block_given?
       }
     }
     objs
   end
+
+
+  def test(file) 
+    objs = []
+    objs += analysis_file(file) {|obj|
+      yield(obj) if block_given?
+    }
+    objs
+  end
+
 
   def git_update
     unless Dir.exists?(@dir)
@@ -44,22 +55,40 @@ class XuanwuRss
     if ul['class'] == 'weibolist'
       ul.xpath('li/div[@id="singleweibo"]').each{|content|
         #source = content.at_xpath('*[@id="singleweiboheader"]/*[@id="singleweibologo"]/img')['src']
-        author = content.at_xpath('*[@id="singleweiboheader"]/*[@id="singleweiboauthor"]/p').text
+        aid = content.at_xpath('*[@id="singleweiboheader"]/*[@id="singleweiboauthor"]/p')
+        author = (aid && aid.text) || ""
         body = content.at_xpath('*[@id="singleweibobody"]/*[@class="singleweibotext"]/p').inner_html
-        fullname,atname = author.split('@', 2)
-        tag, link, description = parse_body(body)
+        if author.size>0
+          fullname,atname = author.split('@', 2)
+        else
+          fullname,atname = ["", ""]
+        end
 
-        obj = {source:'twitter', fullname:fullname.strip, atname: atname.strip, tag: tag.strip, link: link.strip, description: description.strip}
+        tag, link, description = parse_body(body)
+        atname ||= ""
+
+        obj = {source:'twitter',
+               fullname:fullname.strip,
+               atname: atname.strip,
+               tag: tag.strip,
+               link: link.strip,
+               description: description.strip}
         objs << obj
         yield(obj) if block_given?
 
       }
     elsif ul['id'] == 'manualfeedlist'
       ul.xpath('li/div[@class="singlemanualfeed"]').each{|content|
-        author = content.at_xpath('*[@class="singlefeedheader"]/*[@class="singlefeedauthor"]/p').text
-        fullname,atname = author.split('via', 2)
+        aid = content.at_xpath('*[@class="singlefeedheader"]/*[@class="singlefeedauthor"]/p')
+        author = (aid && aid.text) || ""
+        if author.size>0
+          fullname,atname = author.split('@', 2)
+        else
+          fullname,atname = ["", ""]
+        end
         body = content.at_xpath('*[@class="singlefeedbody"]/*[@class="singlefeedtext"]/p').inner_html
         tag, link, description = parse_body(body)
+        atname ||= ""
 
         obj = {source:fullname.strip, atname: atname.strip, tag: tag.strip, link: link.strip, description: description.strip}
         objs << obj
@@ -85,7 +114,10 @@ class XuanwuRss
     end
 
     if m
-      tag = m[:tag].scan(/\<i\>(.*?)\<\/i\>/um).first.first.strip
+      tagis = m[:tag].scan(/\<i\>(.*?)\<\/i\>/um)
+      if tagis.size > 0
+        tag = m[:tag].scan(/\<i\>(.*?)\<\/i\>/um).first.first.strip
+      end
       link = m[:link].strip if m.names.include? 'link'
     end
 
@@ -104,12 +136,19 @@ class XuanwuRss
   end
 end
 
+puts ARGV
+if ARGV.size==1 then
+  objs = XuanwuRss.new.test(ARGV[0]) {|obj|
+    print '.'
+  }
+else 
+  objs = XuanwuRss.new.run{|obj|
+    print '.'
+  }
+end
 
-objs = XuanwuRss.new.run{|obj|
-  print '.'
-}
 cnt_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[h1[:atname]]+=1}.sort_by{|k,v| v}.reverse
-puts ""
+puts "="*30
 puts "distinct count: #{cnt_hash.size}"
 all_cnt = 0
 cnt_hash.each{|k,v|all_cnt+=v}
@@ -118,11 +157,13 @@ puts "sort by source: "
 puts cnt_hash.map{|k,v| "#{k}:\t#{v}"}
 
 tag_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[h1[:tag]]+=1}.sort_by{|k,v| v}.reverse
+puts "="*30
 puts "distinct tag count: #{tag_hash.size}"
 puts "sort by tag: "
 puts tag_hash.map{|k,v| "#{k}:\t#{v}"}
 
 host_hash = objs.each_with_object(Hash.new(0)){|h1, h2| h2[XuanwuRss.host_of_url(h1[:link])]+=1}.sort_by{|k,v| v}.reverse
+puts "="*30
 puts "distinct host count: #{host_hash.size}"
 puts "sort by host: "
 puts host_hash.map{|k,v| "#{k}:\t#{v}"}
