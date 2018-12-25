@@ -165,10 +165,16 @@ paper.seebug.org排名比较高，说明大家对heige的工作还是比较认�
 从这里可以看出来关注点还是比较明确的，偏二进制。相对来说，不太满足各位小白帽的"求知欲望"，他们希望偏Web漏洞多一点，所以大家大部分反馈的是看不懂。
 
 ## 运行
-```
+```bash
 bundle install
 ruby analysis_xuanwu.rb
 ```
+
+如果需要跟踪twitter的真实连接（t.co展开），可以通过下面命令完成：
+```bash
+OPEN_TWITTER_URL_PARSE=1 http_proxy=http://127.0.0.1:8123 ruby analysis_xuanwu.rb
+```
+打开OPEN_TWITTER_URL_PARSE，并且指定可以翻墙的http代理地址：http_proxy=http://127.0.0.1:8123
 
 ## 查询
 ### 查询参考网站排序

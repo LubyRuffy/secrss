@@ -3,8 +3,13 @@
 require 'nokogiri'
 require 'domainatrix'
 require 'uri'
+require 'net/http'
 
+# 是否打开twitter url跟踪，默认关闭，打开的话会统计真实的来源url，需要翻墙
+OPEN_TWITTER_URL_PARSE=false
+OPEN_TWITTER_URL_PARSE ||= ENV['OPEN_TWITTER_URL_PARSE']
 
+# 是否使用数据库保存内容，便于后续统计
 USE_SQLITE3=true
 if USE_SQLITE3
   require "sqlite3"
@@ -61,6 +66,16 @@ class XuanwuRss
     objs
   end
 
+  def get_redirect_url(url)
+    return url unless OPEN_TWITTER_URL_PARSE
+    response = Net::HTTP.get_response(URI(url))
+    case response
+    when Net::HTTPRedirection then
+      url = response['location']
+    end
+    url
+  end
+
 
   def git_update
     unless Dir.exists?(@dir)
@@ -106,6 +121,11 @@ class XuanwuRss
         end
 
         tag, link, description = parse_body(body)
+
+        if link.include?('t.co')
+          link = get_redirect_url(link)
+        end
+
         atname ||= ""
         host = ""
         begin
@@ -140,6 +160,10 @@ class XuanwuRss
 
         unless link && link.size>8
           link = extract_links(description) || ""
+        end
+
+        if link.include?('t.co')
+          link = get_redirect_url(link)
         end
 
         fullname = fullname.delete_prefix('Xuanwu Spider via ') if fullname.include?('Xuanwu Spider via ')
